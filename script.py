@@ -10,7 +10,7 @@ import sys
 mimetypes.init()
 PATH = os.path.realpath(os.path.dirname(sys.argv[0]))
 CWD = os.getcwd()
-HOST = '127.0.0.1'
+HOST = '0.0.0.0'
 PORT = 8000
 
 HTML_BEFORE = """<!DOCTYPE HTML>
@@ -28,6 +28,7 @@ HTML_AFTER = """ </body>
 _js_source = open(PATH + "/included.js","r")
 JAVASCRIPT = "<script>" + _js_source.read() + "</script>"
 _js_source.close()
+
 
 def generateDirPage(path):
     ls = os.scandir(CWD + path)
@@ -53,7 +54,20 @@ def getMimetype(path):
         pass
     return val
 
+# Taken from https://stackoverflow.com/a/28950776/2279323
+def getLanIp():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
 
+LANIP = getLanIp()
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     binded = False
     while not binded:
@@ -63,8 +77,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         except Exception:
             PORT += 1
 
-    print("Listening on http://127.0.0.1:" + str(PORT))
-    webopen("http://127.0.0.1:" + str(PORT))
+    print("Connect to http://" + LANIP + ":" + str(PORT))
+    webopen("http://" + LANIP + ":" + str(PORT))
     s.listen(1)
     while True:
         conn, addr = s.accept()
