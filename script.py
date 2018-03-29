@@ -25,7 +25,7 @@ HTML_AFTER = """ </body>
 </html>"""
 
 # Javascript to be included at the end of each html documents
-_js_source = open(PATH + "/included.js","r")
+_js_source = open(PATH + "/included.js", "r")
 JAVASCRIPT = "<script>" + _js_source.read() + "</script>"
 _js_source.close()
 
@@ -54,6 +54,7 @@ def getMimetype(path):
         pass
     return val
 
+
 # Taken from https://stackoverflow.com/a/28950776/2279323
 def getLanIp():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -66,6 +67,7 @@ def getLanIp():
     finally:
         s.close()
     return IP
+
 
 LANIP = getLanIp()
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
