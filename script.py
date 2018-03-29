@@ -21,6 +21,10 @@ HTML_BEFORE = """<!DOCTYPE HTML>
 HTML_AFTER = """ </body>
 </html>"""
 
+JAVASCRIPT = """<script>
+alert("test");
+</script>"""
+
 
 def generateDirPage(path):
     ls = os.scandir(PATH + path)
@@ -81,13 +85,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         data = generateDirPage(path)
                         conn.send(data.encode())
                     else:
-                        data = open(PATH + path, mode="rb")
-                        conn.send(("Content-Type: " + getMimetype(path) +
-                                   "\r\n\r\n").encode())
-                        l = data.read(1024)
-                        while (l):
-                            conn.send(l)
-                            l = data.read(1024)
+                        mime = getMimetype(path)
+                        if mime == "text/html":
+                            data = open(PATH + path, mode="r")
+                            content = data.read()
+                            data.close()
+                            content = content.replace("</body>",
+                                                      JAVASCRIPT + "</body>")
+                            conn.send((
+                                "Content-Type: " + mime + "\r\n\r\n").encode())
+                            conn.send(content.encode())
+                        else:
+                            data = open(PATH + path, mode="rb")
+                            conn.send((
+                                "Content-Type: " + mime + "\r\n\r\n").encode())
+                            conn.send(data.read())
+                            data.close()
                     conn.close()
                 else:  # File does not exist
                     conn.send("HTTP/1.0 404 OK\r\n".encode())
