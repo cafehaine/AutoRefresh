@@ -1,4 +1,4 @@
-var towatch = []
+let towatch = []
 // all elements
 let nodes = document.getElementsByTagName("*");
 for (let i = 0; i < nodes.length; i++)
@@ -11,4 +11,7 @@ for (let i = 0; i < nodes.length; i++)
     if (nodes[i].href != null && nodes[i].href != "")
         towatch.push(nodes[i].href);
 
-console.log(towatch);
+let data = JSON.stringify(towatch);
+let sock = new WebSocket("ws://" + window.location.host + "/__websocket");
+//sock.send(data)
+//sock.close()

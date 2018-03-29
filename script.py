@@ -6,6 +6,11 @@ import os
 from webbrowser import open as webopen
 import mimetypes
 import sys
+# used to treat request arguments
+import re
+# used to generate key for websocket communication
+import hashlib
+from base64 import b64encode
 
 mimetypes.init()
 PATH = os.path.realpath(os.path.dirname(sys.argv[0]))
@@ -87,6 +92,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         conn.settimeout(1)
         try:
             with conn:
+                #------------------------------------#
+                # Receive header and fetch arguments #
+                #------------------------------------#
+
                 print('Connected by', addr)
                 request = ""
                 while True:
@@ -94,9 +103,31 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     request = request + data.decode("utf-8")
                     if request.endswith("\r\n\r\n"): break
                 lines = request.splitlines()
+                # put arguments in a dict
+                arguments = {}
+                for l in lines:
+                    match = re.match("^(.*):\ (.*)$", l)
+                    if match != None:
+                        key, value = match.group(1, 2)
+                        arguments[key] = value
+
                 method, path, protocol = lines[0].split(" ")
                 print("\t" + method + " " + path)
-                if os.path.exists(CWD + path):
+
+                #---------------#
+                # Treat request #
+                #---------------#
+
+                if path == "/__websocket":
+                    conn.send("HTTP/1.1 101 Switching Protocols\r\n".encode())
+                    conn.send("Upgrade: websocket\r\n".encode())
+                    conn.send("Connection: Upgrade\r\n".encode())
+                    keyhash = b64encode(
+                        hashlib.sha1(arguments["Sec-WebSocket-Key"].encode(
+                        ) + b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest())
+                    conn.send(b"Sec-WebSocket-Accept: " + keyhash + b"\r\n")
+                    conn.send("Sec-WebSocket-Protocol: chat\r\n\r\n".encode())
+                elif os.path.exists(CWD + path):
                     conn.send('HTTP/1.0 200 OK\r\n'.encode())
                     if path.endswith("/"):
                         conn.send(
