@@ -15,8 +15,8 @@ from base64 import b64encode
 mimetypes.init()
 PATH = os.path.realpath(os.path.dirname(sys.argv[0]))
 CWD = os.getcwd()
-HOST = '0.0.0.0'
-PORT = 8000
+HOST = "0.0.0.0"
+BASEPORT = 8000
 
 HTML_BEFORE = """<!DOCTYPE HTML>
 <html>
@@ -64,11 +64,10 @@ def getMimetype(path):
 def getLanIp():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
+        s.connect(("10.255.255.255", 1))
         IP = s.getsockname()[0]
     except:
-        IP = '127.0.0.1'
+        IP = "127.0.0.1"
     finally:
         s.close()
     return IP
@@ -79,13 +78,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     binded = False
     while not binded:
         try:
-            s.bind((HOST, PORT))
+            s.bind((HOST, BASEPORT))
             binded = True
         except Exception:
-            PORT += 1
+            BASEPORT += 1
 
-    print("Connect to http://" + LANIP + ":" + str(PORT))
-    webopen("http://" + LANIP + ":" + str(PORT))
+    print("Connect to http://" + LANIP + ":" + str(BASEPORT))
+    webopen("http://" + LANIP + ":" + str(BASEPORT))
     s.listen(1)
     while True:
         conn, addr = s.accept()
@@ -96,7 +95,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # Receive header and fetch arguments #
                 #------------------------------------#
 
-                print('Connected by', addr)
+                print("Connected by", addr)
                 request = ""
                 while True:
                     data = conn.recv(1024)
@@ -119,16 +118,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 #---------------#
 
                 if path == "/__websocket":
-                    conn.send("HTTP/1.1 101 Switching Protocols\r\n".encode())
-                    conn.send("Upgrade: websocket\r\n".encode())
-                    conn.send("Connection: Upgrade\r\n".encode())
+                    conn.send(b"HTTP/1.1 101 Switching Protocols\r\n")
+                    conn.send(b"Upgrade: websocket\r\n")
+                    conn.send(b"Connection: Upgrade\r\n")
                     keyhash = b64encode(
                         hashlib.sha1(arguments["Sec-WebSocket-Key"].encode(
                         ) + b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest())
                     conn.send(b"Sec-WebSocket-Accept: " + keyhash + b"\r\n")
-                    conn.send("Sec-WebSocket-Protocol: chat\r\n\r\n".encode())
+                    conn.send(b"Sec-WebSocket-Protocol: chat\r\n\r\n")
                 elif os.path.exists(CWD + path):
-                    conn.send('HTTP/1.0 200 OK\r\n'.encode())
+                    conn.send(b"HTTP/1.0 200 OK\r\n")
                     if path.endswith("/"):
                         conn.send(
                             ("Content-Type: " + mimetypes.types_map[".html"] +
@@ -154,9 +153,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             data.close()
                     conn.close()
                 else:  # File does not exist
-                    conn.send("HTTP/1.0 404 OK\r\n".encode())
-                    conn.send("Content-Type: text/plain\r\n\r\n".encode())
-                    conn.send("err 404".encode())
+                    conn.send(b"HTTP/1.0 404 OK\r\n")
+                    conn.send(b"Content-Type: text/plain\r\n\r\n")
+                    conn.send(b"err 404")
                     conn.close()
         except socket.timeout:
             print("timeout")
