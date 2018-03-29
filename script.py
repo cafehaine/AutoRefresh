@@ -23,11 +23,17 @@ HTML_AFTER = """ </body>
 
 
 def generateDirPage(path):
-    ls = os.listdir(PATH + path)
+    ls = os.scandir(PATH + path)
+    entries = []
+    for entry in ls:
+        entries.append(entry.name if entry.is_file() else (entry.name + "/"))
+    ls.close()
+
     data = HTML_BEFORE
-    data += "<a href=\"..\">..</a><br>"
-    for f in ls:
-        data += "<a href=\"" + f + "\">" + f + "</a><br>"
+    data += "<h1>"+path+"</h1>"
+    data += "<a href=\"../\">../</a><br>"
+    for entry in entries:
+        data += "<a href=\"" + entry + "\">" + entry + "</a><br>"
     data += HTML_AFTER
     return data
 
@@ -69,5 +75,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         conn.send(l)
                         l = data.read(1024)
                 conn.close()
-        except Exception:
+        except socket.timeout:
             print("timeout")
