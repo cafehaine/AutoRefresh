@@ -3,10 +3,13 @@
 import pyinotify
 import socket
 import os
+from webbrowser import open as webopen
 import mimetypes
+import sys
 
 mimetypes.init()
-PATH = os.getcwd()
+PATH = os.path.realpath(os.path.dirname(sys.argv[0]))
+CWD = os.getcwd()
 HOST = '127.0.0.1'
 PORT = 8000
 
@@ -21,13 +24,13 @@ HTML_BEFORE = """<!DOCTYPE HTML>
 HTML_AFTER = """ </body>
 </html>"""
 
-JAVASCRIPT = """<script>
-alert("test");
-</script>"""
-
+# Javascript to be included at the end of each html documents
+_js_source = open(PATH + "/included.js","r")
+JAVASCRIPT = "<script>" + _js_source.read() + "</script>"
+_js_source.close()
 
 def generateDirPage(path):
-    ls = os.scandir(PATH + path)
+    ls = os.scandir(CWD + path)
     entries = []
     for entry in ls:
         entries.append(entry.name if entry.is_file() else (entry.name + "/"))
@@ -61,6 +64,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             PORT += 1
 
     print("Listening on http://127.0.0.1:" + str(PORT))
+    webopen("http://127.0.0.1:" + str(PORT))
     s.listen(1)
     while True:
         conn, addr = s.accept()
@@ -76,7 +80,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 lines = request.splitlines()
                 method, path, protocol = lines[0].split(" ")
                 print("\t" + method + " " + path)
-                if os.path.exists(PATH + path):
+                if os.path.exists(CWD + path):
                     conn.send('HTTP/1.0 200 OK\r\n'.encode())
                     if path.endswith("/"):
                         conn.send(
@@ -87,7 +91,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     else:
                         mime = getMimetype(path)
                         if mime == "text/html":
-                            data = open(PATH + path, mode="r")
+                            data = open(CWD + path, mode="r")
                             content = data.read()
                             data.close()
                             content = content.replace("</body>",
@@ -96,7 +100,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 "Content-Type: " + mime + "\r\n\r\n").encode())
                             conn.send(content.encode())
                         else:
-                            data = open(PATH + path, mode="rb")
+                            data = open(CWD + path, mode="rb")
                             conn.send((
                                 "Content-Type: " + mime + "\r\n\r\n").encode())
                             conn.send(data.read())
