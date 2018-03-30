@@ -9,6 +9,18 @@ import hashlib
 from base64 import b64encode
 import json
 
+__objects__ = []
+
+def closeAll():
+    '''Closes all of the sockets of all the websocketmanager objects.'''
+    for obj in __objects__:
+        obj.sock.close()
+
+def update(path):
+    '''Will check if any of the websocketmanager should send an update signal'''
+    for obj in __objects__:
+        if path in obj.content:
+            obj.update()
 
 def __decodeframe__(data):
     secondByte = data[1]
@@ -70,5 +82,9 @@ class websocketmanager:
         socket.send(b"Sec-WebSocket-Protocol: chat\r\n\r\n")
         data = socket.recv(1024)
         self.content = json.loads(__decodeframe__(data))
-        print(self.content)
-        socket.send(__encodeframe__("test"))
+        __objects__.append(self)
+
+    def update(self):
+        self.sock.send(__encodeframe__("reload"));
+        self.sock.close()
+        __objects__.remove(self)
