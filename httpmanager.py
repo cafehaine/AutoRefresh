@@ -22,6 +22,7 @@ _js_source = open(PATH + "/included.js", "r")
 JAVASCRIPT = "<script>" + _js_source.read() + "</script>"
 _js_source.close()
 
+
 def __generateDirPage__(path):
     ls = os.scandir(CWD + path)
     entries = []
@@ -46,14 +47,14 @@ def __getMimetype__(path):
         pass
     return val
 
+
 def handlehttp(conn, path):
     if os.path.exists(CWD + path):
         conn.send(b"HTTP/1.0 200 OK\r\n")
         # Directory
         if path.endswith("/"):
-            conn.send(
-                ("Content-Type: " + mimetypes.types_map[".html"] +
-                 "\r\n\r\n").encode())
+            conn.send(("Content-Type: " + mimetypes.types_map[".html"] +
+                       "\r\n\r\n").encode())
             data = __generateDirPage__(path)
             conn.send(data.encode())
         # File
@@ -64,16 +65,13 @@ def handlehttp(conn, path):
                 data = open(CWD + path, mode="r")
                 content = data.read()
                 data.close()
-                content = content.replace("</body>",
-                                          JAVASCRIPT + "</body>")
-                conn.send((
-                    "Content-Type: " + mime + "\r\n\r\n").encode())
+                content = content.replace("</body>", JAVASCRIPT + "</body>")
+                conn.send(("Content-Type: " + mime + "\r\n\r\n").encode())
                 conn.send(content.encode())
             # Send file as-is
             else:
                 data = open(CWD + path, mode="rb")
-                conn.send((
-                    "Content-Type: " + mime + "\r\n\r\n").encode())
+                conn.send(("Content-Type: " + mime + "\r\n\r\n").encode())
                 conn.send(data.read())
                 data.close()
     # 404

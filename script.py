@@ -13,6 +13,7 @@ BASEPORT = 8000
 
 WEBSOCKETS = []
 
+
 # Taken from https://stackoverflow.com/a/28950776/2279323
 def getLanIp():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

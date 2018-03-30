@@ -5,29 +5,31 @@ Since I din't want to read pages of specifications, all of what you see here is
 based on https://stackoverflow.com/a/8125509/2279323
 '''
 
-
 import hashlib
 from base64 import b64encode
 import json
 
+
 def __decodeframe__(data):
     secondByte = data[1]
-    length = secondByte & 127 # may not be the actual length in the two special cases
-    indexFirstMask = 2 # if not a special case
-    if length == 126: # if a special case, change indexFirstMask
+    length = secondByte & 127  # may not be the actual length in the two special cases
+    indexFirstMask = 2  # if not a special case
+    if length == 126:  # if a special case, change indexFirstMask
         indexFirstMask = 4
-    elif length == 127: # ditto
+    elif length == 127:  # ditto
         indexFirstMask = 10
 
-    masks = data[indexFirstMask : indexFirstMask + 4] # four bytes starting from indexFirstMask
-    indexFirstDataByte = indexFirstMask + 4 # four bytes further
+    masks = data[indexFirstMask:
+                 indexFirstMask + 4]  # four bytes starting from indexFirstMask
+    indexFirstDataByte = indexFirstMask + 4  # four bytes further
     decoded = ""
     j = 0
-    for i in range(indexFirstDataByte,len(data)):
+    for i in range(indexFirstDataByte, len(data)):
         decoded += chr(data[i] ^ masks[j % 4])
         j += 1
-    
+
     return decoded
+
 
 class websocketmanager:
     def __init__(self, socket, arguments):
@@ -45,4 +47,3 @@ class websocketmanager:
         data = socket.recv(1024)
         self.content = json.loads(__decodeframe__(data))
         print(self.content)
-
