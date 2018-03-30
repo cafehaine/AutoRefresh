@@ -25,16 +25,22 @@ _js_source.close()
 
 def __generateDirPage__(path):
     ls = os.scandir(CWD + path)
-    entries = []
+    directories = ["../"]
+    files = []
     for entry in ls:
-        entries.append(entry.name if entry.is_file() else (entry.name + "/"))
-    ls.close()
+        if entry.is_file():
+            files.append(entry.name)
+        else:
+            directories.append(entry.name + "/")
+    files.sort(key=lambda s: s.lower())
+    directories.sort(key=lambda s: s.lower())
 
     data = HTML_BEFORE
     data += "<h1>" + path + "</h1>"
-    data += "<a href=\"../\">../</a><br>"
-    for entry in entries:
-        data += "<a href=\"" + entry + "\">" + entry + "</a><br>"
+    for e in directories:
+        data += "<a href=\"" + e + "\">📁 - " + e + "</a><br>"
+    for e in files:
+        data += "<a href=\"" + e + "\">📄 - " + e + "</a><br>"
     data += HTML_AFTER
     return data
 
@@ -53,8 +59,7 @@ def handlehttp(conn, path):
         conn.send(b"HTTP/1.0 200 OK\r\n")
         # Directory
         if path.endswith("/"):
-            conn.send(("Content-Type: " + mimetypes.types_map[".html"] +
-                       "\r\n\r\n").encode())
+            conn.send(b"Content-Type: text/html\r\n\r\n")
             data = __generateDirPage__(path)
             conn.send(data.encode())
         # File
@@ -77,6 +82,10 @@ def handlehttp(conn, path):
     # 404
     else:
         conn.send(b"HTTP/1.0 404 OK\r\n")
-        conn.send(b"Content-Type: text/plain\r\n\r\n")
-        conn.send(b"err 404")
+        conn.send(b"Content-Type: text/html\r\n\r\n")
+        data = HTML_BEFORE
+        data += "<h1>404 - page not found</h1>"
+        data += "<a href=\"../\">Go to parent directory</a>"
+        data += HTML_AFTER
+        conn.send(data.encode())
     conn.close()
