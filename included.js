@@ -13,9 +13,6 @@ for (let i = 0; i < nodes.length; i++)
 
 let data = JSON.stringify(towatch);
 let sock = new WebSocket("ws://" + window.location.host + "/__websocket");
-sock.addEventListener('open', function (event)
-	{
-		console.log(data)
-		sock.send(data);
-	});
 
+sock.addEventListener("open", e => sock.send(data));
+sock.addEventListener("message", e => console.log("RECEIVED: " + e.data));

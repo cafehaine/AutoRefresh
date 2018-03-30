@@ -31,6 +31,30 @@ def __decodeframe__(data):
     return decoded
 
 
+def __encodeframe__(data):
+    message = data.encode()
+    output = [129]
+
+    if len(message) <= 125:
+        output.append(len(message))
+    elif len(message) >= 126 and len(message) <= 65535:
+        output.append(126)
+        output.append((len(message) >> 8) & 255)
+        output.append((len(message)) & 255)
+    else:
+        output.append(127)
+        output.append((len(message) >> 56) & 255)
+        output.append((len(message) >> 48) & 255)
+        output.append((len(message) >> 40) & 255)
+        output.append((len(message) >> 32) & 255)
+        output.append((len(message) >> 24) & 255)
+        output.append((len(message) >> 16) & 255)
+        output.append((len(message) >> 8) & 255)
+        output.append((len(message)) & 255)
+
+    return bytes(output) + message
+
+
 class websocketmanager:
     def __init__(self, socket, arguments):
         self.sock = socket
@@ -47,3 +71,4 @@ class websocketmanager:
         data = socket.recv(1024)
         self.content = json.loads(__decodeframe__(data))
         print(self.content)
+        socket.send(__encodeframe__("test"))
