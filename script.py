@@ -43,7 +43,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.listen(1)
     while True:
         conn, addr = s.accept()
-        # conn.settimeout(1)
         try:
             with conn:
                 #------------------------------------#
@@ -78,6 +77,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     WEBSOCKETS.append(websock)
                 # File/Directory
                 else:
+                    conn.settimeout(5)
                     handlehttp(conn, path)
             print("done")
         except socket.timeout:
