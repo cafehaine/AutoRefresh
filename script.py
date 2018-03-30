@@ -8,9 +8,6 @@ import mimetypes
 import sys
 # used to treat request arguments
 import re
-# used to generate key for websocket communication
-import hashlib
-from base64 import b64encode
 from websocketmanager import websocketmanager
 
 mimetypes.init()
