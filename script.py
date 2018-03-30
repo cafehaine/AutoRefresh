@@ -11,6 +11,7 @@ import re
 # used to generate key for websocket communication
 import hashlib
 from base64 import b64encode
+from websocketmanager import websocketmanager
 
 mimetypes.init()
 PATH = os.path.realpath(os.path.dirname(sys.argv[0]))
@@ -28,6 +29,8 @@ HTML_BEFORE = """<!DOCTYPE HTML>
 
 HTML_AFTER = """ </body>
 </html>"""
+
+WEBSOCKETS = []
 
 # Javascript to be included at the end of each html documents
 _js_source = open(PATH + "/included.js", "r")
@@ -88,7 +91,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.listen(1)
     while True:
         conn, addr = s.accept()
-        conn.settimeout(1)
+        # conn.settimeout(1)
         try:
             with conn:
                 #------------------------------------#
@@ -117,25 +120,24 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # Treat request #
                 #---------------#
 
+                # WebSocket
                 if path == "/__websocket":
-                    conn.send(b"HTTP/1.1 101 Switching Protocols\r\n")
-                    conn.send(b"Upgrade: websocket\r\n")
-                    conn.send(b"Connection: Upgrade\r\n")
-                    keyhash = b64encode(
-                        hashlib.sha1(arguments["Sec-WebSocket-Key"].encode(
-                        ) + b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest())
-                    conn.send(b"Sec-WebSocket-Accept: " + keyhash + b"\r\n")
-                    conn.send(b"Sec-WebSocket-Protocol: chat\r\n\r\n")
+                    websock = websocketmanager(conn, arguments)
+                    WEBSOCKETS.append(websock)
+                # File/Directory
                 elif os.path.exists(CWD + path):
                     conn.send(b"HTTP/1.0 200 OK\r\n")
+                    # Directory
                     if path.endswith("/"):
                         conn.send(
                             ("Content-Type: " + mimetypes.types_map[".html"] +
                              "\r\n\r\n").encode())
                         data = generateDirPage(path)
                         conn.send(data.encode())
+                    # File
                     else:
                         mime = getMimetype(path)
+                        # HTML -> insert custom JS
                         if mime == "text/html":
                             data = open(CWD + path, mode="r")
                             content = data.read()
@@ -145,6 +147,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             conn.send((
                                 "Content-Type: " + mime + "\r\n\r\n").encode())
                             conn.send(content.encode())
+                        # Send file as-is
                         else:
                             data = open(CWD + path, mode="rb")
                             conn.send((
@@ -152,10 +155,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             conn.send(data.read())
                             data.close()
                     conn.close()
-                else:  # File does not exist
+                # 404
+                else:
                     conn.send(b"HTTP/1.0 404 OK\r\n")
                     conn.send(b"Content-Type: text/plain\r\n\r\n")
                     conn.send(b"err 404")
                     conn.close()
+            print("done")
         except socket.timeout:
             print("timeout")
