@@ -22,6 +22,9 @@ _js_source = open(PATH + "/included.js", "r")
 JAVASCRIPT = "<script>" + _js_source.read() + "</script>"
 _js_source.close()
 
+# To add, just in case the javascript is disabled
+NOSCRIPT = '''<noscript><div style="width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; padding: 0; margin: 0; line-height: 100vh; font-size: 3rem; background: #fff; text-align: center;">PLEASE ENABLE JAVASCRIPT FOR AUTOREFRESH TO WORK</div></noscript>'''
+
 
 def __generateDirPage__(path):
     ls = os.scandir(CWD + path)
@@ -70,7 +73,8 @@ def handlehttp(conn, path):
                 data = open(CWD + path, mode="r")
                 content = data.read()
                 data.close()
-                content = content.replace("</body>", JAVASCRIPT + "</body>")
+                content = content.replace("</body>",
+                                          JAVASCRIPT + NOSCRIPT + "</body>")
                 conn.send(("Content-Type: " + mime + "\r\n\r\n").encode())
                 conn.send(content.encode())
             # Send file as-is
