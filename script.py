@@ -3,6 +3,7 @@
 import os
 import socket
 from webbrowser import open as webopen
+import logging
 # Request arguments treating
 import re
 # Sockets handling
@@ -44,7 +45,6 @@ class EventHandler(pyinotify.ProcessEvent):
         websocketmanager.update(event.pathname[len(CWD) + 1:])
 
 
-#log.setLevel(10)
 notifier = pyinotify.ThreadedNotifier(wm, EventHandler())
 notifier.start()
 
@@ -74,7 +74,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # Receive header and fetch arguments #
             #------------------------------------#
 
-            print("Connected by", addr)
+            logging.info("Connected by", addr)
             request = ""
             while True:
                 data = conn.recv(1024)
@@ -90,7 +90,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     arguments[key] = value
 
             method, path, protocol = lines[0].split(" ")
-            print("\t" + method + " " + path)
+            logging.info("\t" + method + " " + path)
 
             #---------------#
             # Treat request #
@@ -105,6 +105,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 conn.settimeout(5)
                 handlehttp(conn, path)
                 conn.close()
-            print("done")
+            logging.info("done")
         except socket.timeout:
-            print("timeout")
+            logging.error("Socket from IP " + addr + " timed-out.")
