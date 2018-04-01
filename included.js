@@ -1,6 +1,6 @@
 let origin = location.origin + "/"
 
-let towatch = []
+let towatch = [location.pathname.substring(1)];
 // all elements
 let nodes = document.getElementsByTagName("*");
 for (let i = 0; i < nodes.length; i++)
@@ -12,8 +12,6 @@ nodes = document.head.childNodes
 for (let i = 0; i < nodes.length; i++)
     if (nodes[i].href != null && nodes[i].href.startsWith(origin))
         towatch.push(nodes[i].href.substring(origin.length));
-
-
 
 let data = JSON.stringify(towatch);
 let sock = new WebSocket("ws://" + window.location.host + "/__websocket");
