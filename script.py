@@ -4,6 +4,7 @@ import os
 import socket
 from webbrowser import open as webopen
 import logging
+import sys
 # Request arguments treating
 import re
 # Sockets handling
@@ -16,6 +17,14 @@ HOST = "0.0.0.0"
 BASEPORT = 8000
 CWD = os.getcwd()
 
+#------------------#
+# Argument parsing #
+#------------------#
+
+for i in range(1,len(sys.argv)):
+    arg = sys.argv[i]
+    if arg == "-l":
+        HOST = "127.0.0.1"
 
 # Taken from https://stackoverflow.com/a/28950776/2279323
 def getLanIp():
@@ -30,7 +39,7 @@ def getLanIp():
     return IP
 
 
-LANIP = getLanIp()
+LANIP = HOST if HOST == "127.0.0.1" else getLanIp()
 
 #---------------#
 # Inotify setup #
@@ -69,7 +78,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     while True:
         conn, addr = s.accept()
         try:
-            conn.settimeout(1)
+            conn.settimeout(0.1)
             #------------------------------------#
             # Receive header and fetch arguments #
             #------------------------------------#
@@ -98,7 +107,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
             # WebSocket
             if path == "/__websocket":
-                conn.settimeout(None)
+                conn.settimeout(5)
                 websock = websocketmanager.websocketmanager(conn, arguments)
             # File/Directory
             else:
@@ -107,4 +116,4 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 conn.close()
             logging.info("done")
         except socket.timeout:
-            logging.error("Socket from IP " + addr + " timed-out.")
+            logging.error("Socket from IP " + str(addr) + " timed-out.")
