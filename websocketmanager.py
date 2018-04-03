@@ -85,6 +85,7 @@ class websocketmanager:
         socket.send(b"Sec-WebSocket-Protocol: chat\r\n\r\n")
         data = socket.recv(1024)
         self.content = json.loads(__decodeframe__(data))
+        socket.settimeout(None)
         __objects__.append(self)
 
     def update(self):
