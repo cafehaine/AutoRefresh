@@ -1,6 +1,7 @@
-import os
 import mimetypes
+import os
 import sys
+from urllib.parse import quote, unquote
 
 HTML_BEFORE = """<!DOCTYPE HTML>
 <html>
@@ -41,9 +42,9 @@ def __generateDirPage__(path):
     data = HTML_BEFORE
     data += "<h1>" + path + "</h1>"
     for e in directories:
-        data += "<a href=\"" + e + "\">📁 - " + e + "</a><br>"
+        data += "<a href=\"" + quote(e) + "\">📁 - " + e + "</a><br>"
     for e in files:
-        data += "<a href=\"" + e + "\">📄 - " + e + "</a><br>"
+        data += "<a href=\"" + quote(e) + "\">📄 - " + e + "</a><br>"
     data += HTML_AFTER
     return data
 
@@ -58,6 +59,7 @@ def __getMimetype__(path):
 
 
 def handlehttp(conn, path):
+    path = unquote(path)
     if os.path.exists(CWD + path):
         conn.send(b"HTTP/1.0 200 OK\r\n")
         # Directory
