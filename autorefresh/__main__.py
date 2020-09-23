@@ -1,13 +1,13 @@
 #!/bin/python3
 
-import os
-import socket
 import logging
-import sys
+import os
 import re
+import socket
+import sys
+from webbrowser import open as webopen
 
 import pyinotify
-from webbrowser import open as webopen
 
 from autorefresh.httpmanager import handlehttp
 from autorefresh import websocketmanager
