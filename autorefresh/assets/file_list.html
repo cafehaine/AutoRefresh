@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>AutoRefresh: {{current_path}}</title>
+	</head>
+	<body>
+		<h1>{{current_path}}</h1>
+		<ul>
+			{% for path in listing_directories %}
+			<li><a href="{{path | urlencode}}">{{path}}</a></li>
+			{% endfor %}
+			{% for path in listing_files %}
+			<li><a href="{{path | urlencode}}">{{path}}</a></li>
+			{% endfor %}
+		</ul>
+	</body>
+</html>

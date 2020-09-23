@@ -2,16 +2,15 @@
 
 import os
 import socket
-from webbrowser import open as webopen
 import logging
 import sys
-# Request arguments treating
 import re
-# Sockets handling
-import websocketmanager
-from httpmanager import handlehttp
-# Filesystem notification
+
 import pyinotify
+from webbrowser import open as webopen
+
+from autorefresh.httpmanager import handlehttp
+from autorefresh import websocketmanager
 
 HOST = "0.0.0.0"
 BASEPORT = 8000
