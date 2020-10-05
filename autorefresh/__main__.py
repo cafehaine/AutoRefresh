@@ -75,7 +75,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     webopen("http://" + LANIP + ":" + str(BASEPORT))
     s.listen(1)
     while True:
-        conn, addr = s.accept()
+        try:
+            conn, addr = s.accept()
+        except KeyboardInterrupt:
+            print("Exiting...")
+            notifier.stop()
+            sys.exit(0)
         try:
             conn.settimeout(0.1)
             #------------------------------------#
