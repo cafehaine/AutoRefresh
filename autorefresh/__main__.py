@@ -5,6 +5,7 @@ import os
 import re
 import socket
 import sys
+from urllib.parse import quote
 from webbrowser import open as webopen
 
 import pyinotify
@@ -50,7 +51,8 @@ mask = pyinotify.IN_MODIFY  # watched events
 
 class EventHandler(pyinotify.ProcessEvent):
     def process_IN_MODIFY(self, event):
-        websocketmanager.update(event.pathname[len(CWD) + 1:])
+        path = event.pathname[len(CWD)+1:]
+        websocketmanager.update(quote(path))
 
 
 notifier = pyinotify.ThreadedNotifier(wm, EventHandler())
