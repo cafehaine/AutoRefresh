@@ -46,13 +46,22 @@ LANIP = HOST if HOST == "127.0.0.1" else getLanIp()
 #---------------#
 
 wm = pyinotify.WatchManager()  # Watch Manager
-mask = pyinotify.IN_MODIFY  # watched events
+mask = pyinotify.IN_MODIFY | pyinotify.IN_CREATE | pyinotify.IN_DELETE  # watched events
 
 
 class EventHandler(pyinotify.ProcessEvent):
-    def process_IN_MODIFY(self, event):
+    def update(self, event):
         path = event.pathname[len(CWD)+1:]
         websocketmanager.update(quote(path))
+
+    def process_IN_MODIFY(self, event):
+        self.update(event)
+
+    def process_IN_CREATE(self, event):
+        self.update(event)
+
+    def process_IN_DELETE(self, event):
+        self.update(event)
 
 
 notifier = pyinotify.ThreadedNotifier(wm, EventHandler())

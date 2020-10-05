@@ -7,6 +7,7 @@ based on https://stackoverflow.com/a/8125509/2279323
 
 import hashlib
 from base64 import b64encode
+from fnmatch import fnmatch
 import json
 
 __objects__ = []
@@ -21,8 +22,15 @@ def closeAll():
 def update(path):
     '''Will check if any of the websocketmanager should send an update signal'''
     for obj in __objects__:
-        if path in obj.content:
-            obj.update()
+        for cont_path in obj.content:
+            print(path, cont_path)
+            if cont_path.endswith("*"):
+                if fnmatch(path, cont_path):
+                    obj.update()
+                    break
+            elif cont_path == path:
+                obj.update()
+                break
 
 
 def __decodeframe__(data):
