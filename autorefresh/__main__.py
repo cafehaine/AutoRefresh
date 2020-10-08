@@ -1,5 +1,6 @@
 #!/bin/python3
 
+from argparse import ArgumentParser
 import logging
 import os
 import re
@@ -13,21 +14,15 @@ import pyinotify
 from autorefresh.httpmanager import handlehttp
 from autorefresh import websocketmanager
 
-HOST = "0.0.0.0"
 BASEPORT = 8000
-CWD = os.getcwd()
 
-#------------------#
-# Argument parsing #
-#------------------#
 
-for i in range(1,len(sys.argv)):
-    arg = sys.argv[i]
-    if arg == "-l":
-        HOST = "127.0.0.1"
+def get_lan_ip():
+    """
+    Return the LAN IPV4 address for this computer.
 
-# Taken from https://stackoverflow.com/a/28950776/2279323
-def getLanIp():
+    Taken from https://stackoverflow.com/a/28950776/2279323
+    """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("10.255.255.255", 1))
@@ -39,19 +34,14 @@ def getLanIp():
     return IP
 
 
-LANIP = HOST if HOST == "127.0.0.1" else getLanIp()
-
-#---------------#
-# Inotify setup #
-#---------------#
-
-wm = pyinotify.WatchManager()  # Watch Manager
-mask = pyinotify.IN_MODIFY | pyinotify.IN_CREATE | pyinotify.IN_DELETE  # watched events
-
-
 class EventHandler(pyinotify.ProcessEvent):
+    """Inotify event handler."""
+
+    def __init__(self, root):
+        self.root = root
+
     def update(self, event):
-        path = event.pathname[len(CWD)+1:]
+        path = event.pathname[len(self.root) + 1 :]
         websocketmanager.update(quote(path))
 
     def process_IN_MODIFY(self, event):
@@ -64,27 +54,9 @@ class EventHandler(pyinotify.ProcessEvent):
         self.update(event)
 
 
-notifier = pyinotify.ThreadedNotifier(wm, EventHandler())
-notifier.start()
-
-wdd = wm.add_watch(CWD, mask, rec=True)
-
-#----------------#
-# Server startup #
-#----------------#
-
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    binded = False
-    while not binded:
-        try:
-            s.bind((HOST, BASEPORT))
-            binded = True
-        except Exception:
-            BASEPORT += 1
-
-    print("Connect to http://" + LANIP + ":" + str(BASEPORT))
-    webopen("http://" + LANIP + ":" + str(BASEPORT))
-    s.listen(1)
+def listen_loop(s):
+    """Main server loop."""
+    s.listen()
     while True:
         try:
             conn, addr = s.accept()
@@ -94,16 +66,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             sys.exit(0)
         try:
             conn.settimeout(0.1)
-            #------------------------------------#
+            # ------------------------------------#
             # Receive header and fetch arguments #
-            #------------------------------------#
+            # ------------------------------------#
 
             logging.info("Connected by", addr)
             request = ""
             while True:
                 data = conn.recv(1024)
                 request = request + data.decode("utf-8")
-                if request.endswith("\r\n\r\n"): break
+                if request.endswith("\r\n\r\n"):
+                    break
             lines = request.splitlines()
             # put arguments in a dict
             arguments = {}
@@ -116,9 +89,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             method, path, protocol = lines[0].split(" ")
             logging.info("\t" + method + " " + path)
 
-            #---------------#
+            # ---------------#
             # Treat request #
-            #---------------#
+            # ---------------#
 
             # WebSocket
             if path == "/__websocket":
@@ -132,3 +105,50 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             logging.info("done")
         except socket.timeout:
             logging.error("Socket from IP " + str(addr) + " timed-out.")
+
+
+if __name__ == "__main__":
+    # Parse arguments
+    parser = ArgumentParser()
+    parser.add_argument(
+        "-l",
+        "--local",
+        default=False,
+        action="store_true",
+        help="Only listen for connections from localhost.",
+    )
+    parser.add_argument("--baseport", default=BASEPORT, type=int, help="Starting port.")
+    parser.add_argument(
+        "root", default=os.getcwd(), type=str, nargs="?", help="The directory to serve."
+    )
+
+    namespace = parser.parse_args()
+
+    listen_address = "127.0.0.1" if namespace.local else "0.0.0.0"
+    lan_ip = get_lan_ip()
+    baseport = namespace.baseport
+    root = namespace.root
+
+    # Setup the watchdog
+    wm = pyinotify.WatchManager()
+    mask = pyinotify.IN_MODIFY | pyinotify.IN_CREATE | pyinotify.IN_DELETE
+
+    notifier = pyinotify.ThreadedNotifier(wm, EventHandler(root))
+    notifier.start()
+
+    wdd = wm.add_watch(root, mask, rec=True)
+
+    # Setup the server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        bound = False
+        while not bound:
+            try:
+                sock.bind((listen_address, baseport))
+                bound = True
+            except Exception:
+                baseport += 1
+
+        print(f"Connect to http://{lan_ip}:{baseport}")
+        webopen(f"http://{lan_ip}:{baseport}")
+
+        listen_loop(sock)
