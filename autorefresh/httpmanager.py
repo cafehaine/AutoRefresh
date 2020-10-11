@@ -1,7 +1,6 @@
 import mimetypes
 import os
-import sys
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 import jinja2
 
@@ -18,12 +17,11 @@ class HttpManager:
 
 
     @staticmethod
-    def __generateDirPage__(path):
+    def _generate_dir_page(path):
         """Return a file listing for a given directory."""
-        ls = os.scandir(path)
         directories = ["../"]
         files = []
-        for entry in ls:
+        for entry in os.scandir(path):
             if entry.is_file():
                 files.append(entry.name)
             else:
@@ -36,14 +34,9 @@ class HttpManager:
 
 
     @staticmethod
-    def __getMimetype__(path):
+    def _get_mimetype(path):
         """Return the mimetype of a given path using it's extension."""
-        val = "text/plain"
-        try:
-            val = mimetypes.types_map[os.path.splitext(path)[1]]
-        except:
-            pass
-        return val
+        return mimetypes.types_map.get(os.path.splitext(path)[1], "text/plain")
 
 
     def handlehttp(self, conn, path):
@@ -57,11 +50,11 @@ class HttpManager:
             # Directory
             if path.endswith("/"):
                 conn.send(b"Content-Type: text/html\r\n\r\n")
-                data = self.__generateDirPage__(path)
+                data = self._generate_dir_page(path)
                 conn.send(data.encode())
             # File
             else:
-                mime = self.__getMimetype__(path)
+                mime = self._get_mimetype(path)
                 # HTML -> insert custom JS
                 if mime == "text/html":
                     data = open(path, mode="r")

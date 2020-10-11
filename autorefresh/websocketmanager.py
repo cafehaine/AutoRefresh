@@ -9,18 +9,19 @@ import hashlib
 from base64 import b64encode
 from fnmatch import fnmatch
 import json
+from typing import List
 
-__objects__ = []
+__objects__: List['WebsocketSession'] = []
 
 
-def closeAll():
-    '''Closes all of the sockets of all the websocketmanager objects.'''
+def close_all():
+    """Close the sockets of all the WebsocketSession objects."""
     for obj in __objects__:
         obj.sock.close()
 
 
 def update(path):
-    '''Will check if any of the websocketmanager should send an update signal'''
+    """Check if any of the WebsocketSession should send an update signal."""
     for obj in __objects__:
         for cont_path in obj.content:
             if cont_path.endswith("*"):
@@ -33,20 +34,21 @@ def update(path):
 
 
 def __decodeframe__(data):
-    secondByte = data[1]
-    length = secondByte & 127  # may not be the actual length in the two special cases
-    indexFirstMask = 2  # if not a special case
-    if length == 126:  # if a special case, change indexFirstMask
-        indexFirstMask = 4
+    """Decode a websocket frame."""
+    second_byte = data[1]
+    length = second_byte & 127  # may not be the actual length in the two special cases
+    index_first_mask = 2  # if not a special case
+    if length == 126:  # if a special case, change index_first_mask
+        index_first_mask = 4
     elif length == 127:  # ditto
-        indexFirstMask = 10
+        index_first_mask = 10
 
-    masks = data[indexFirstMask:
-                 indexFirstMask + 4]  # four bytes starting from indexFirstMask
-    indexFirstDataByte = indexFirstMask + 4  # four bytes further
+    masks = data[index_first_mask:
+                 index_first_mask + 4]  # four bytes starting from index_first_mask
+    index_first_data_byte = index_first_mask + 4  # four bytes further
     decoded = ""
     j = 0
-    for i in range(indexFirstDataByte, len(data)):
+    for i in range(index_first_data_byte, len(data)):
         decoded += chr(data[i] ^ masks[j % 4])
         j += 1
 
@@ -54,6 +56,7 @@ def __decodeframe__(data):
 
 
 def __encodeframe__(data):
+    """Encode a websocket frame."""
     message = data.encode()
     output = [129]
 
@@ -77,7 +80,7 @@ def __encodeframe__(data):
     return bytes(output) + message
 
 
-class websocketmanager:
+class WebsocketSession:
     def __init__(self, socket, arguments):
         self.sock = socket
 

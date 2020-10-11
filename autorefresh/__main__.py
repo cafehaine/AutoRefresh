@@ -1,6 +1,6 @@
 #!/bin/python3
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 import logging
 import os
 import re
@@ -23,15 +23,15 @@ def get_lan_ip():
 
     Taken from https://stackoverflow.com/a/28950776/2279323
     """
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(("10.255.255.255", 1))
-        IP = s.getsockname()[0]
-    except:
-        IP = "127.0.0.1"
+        sock.connect(("10.255.255.255", 1))
+        inet = sock.getsockname()[0]
+    except Exception:
+        inet = "127.0.0.1"
     finally:
-        s.close()
-    return IP
+        sock.close()
+    return inet
 
 
 class EventHandler(pyinotify.ProcessEvent):
@@ -54,12 +54,12 @@ class EventHandler(pyinotify.ProcessEvent):
         self.update(event)
 
 
-def listen_loop(s, http_manager):
+def listen_loop(sock, notifier, http_manager):
     """Main server loop."""
-    s.listen()
+    sock.listen()
     while True:
         try:
-            conn, addr = s.accept()
+            conn, addr = sock.accept()
         except KeyboardInterrupt:
             print("Exiting...")
             notifier.stop()
@@ -70,7 +70,7 @@ def listen_loop(s, http_manager):
             # Receive header and fetch arguments #
             # ------------------------------------#
 
-            logging.info("Connected by", addr)
+            logging.info("Connected by %s", addr)
             request = ""
             while True:
                 data = conn.recv(1024)
@@ -80,14 +80,14 @@ def listen_loop(s, http_manager):
             lines = request.splitlines()
             # put arguments in a dict
             arguments = {}
-            for l in lines:
-                match = re.match("^(.*):\ (.*)$", l)
-                if match != None:
+            for line in lines:
+                match = re.match(r"^(.*):\ (.*)$", line)
+                if match is not None:
                     key, value = match.group(1, 2)
                     arguments[key] = value
 
-            method, path, protocol = lines[0].split(" ")
-            logging.info("\t" + method + " " + path)
+            method, path, _ = lines[0].split(" ")
+            logging.info("\t%s %s", method, path)
 
             # ---------------#
             # Treat request #
@@ -96,7 +96,7 @@ def listen_loop(s, http_manager):
             # WebSocket
             if path == "/__websocket":
                 conn.settimeout(5)
-                websock = websocketmanager.websocketmanager(conn, arguments)
+                websocketmanager.WebsocketSession(conn, arguments)
             # File/Directory
             else:
                 conn.settimeout(5)
@@ -104,7 +104,41 @@ def listen_loop(s, http_manager):
                 conn.close()
             logging.info("done")
         except socket.timeout:
-            logging.error("Socket from IP " + str(addr) + " timed-out.")
+            logging.error("Socket from IP %s timed-out.", addr)
+
+
+def main(namespace: Namespace) -> None:
+    """Main function: setup the server and run it."""
+    listen_address = "127.0.0.1" if namespace.local else "0.0.0.0"
+    lan_ip = get_lan_ip()
+    baseport = namespace.baseport
+    root = namespace.root
+
+    # Setup the watchdog
+    watchdog = pyinotify.WatchManager()
+    mask = pyinotify.IN_MODIFY | pyinotify.IN_CREATE | pyinotify.IN_DELETE
+
+    notifier = pyinotify.ThreadedNotifier(watchdog, EventHandler(root))
+    notifier.start()
+
+    watchdog.add_watch(root, mask, rec=True)
+
+    # Setup the server
+    http_manager = HttpManager(root)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        bound = False
+        while not bound:
+            try:
+                sock.bind((listen_address, baseport))
+                bound = True
+            except Exception:
+                baseport += 1
+
+        print(f"Connect to http://{lan_ip}:{baseport}")
+        webopen(f"http://{lan_ip}:{baseport}")
+
+        listen_loop(sock, notifier, http_manager)
 
 
 if __name__ == "__main__":
@@ -122,35 +156,4 @@ if __name__ == "__main__":
         "root", default=os.getcwd(), type=str, nargs="?", help="The directory to serve."
     )
 
-    namespace = parser.parse_args()
-
-    listen_address = "127.0.0.1" if namespace.local else "0.0.0.0"
-    lan_ip = get_lan_ip()
-    baseport = namespace.baseport
-    root = namespace.root
-
-    # Setup the watchdog
-    wm = pyinotify.WatchManager()
-    mask = pyinotify.IN_MODIFY | pyinotify.IN_CREATE | pyinotify.IN_DELETE
-
-    notifier = pyinotify.ThreadedNotifier(wm, EventHandler(root))
-    notifier.start()
-
-    wdd = wm.add_watch(root, mask, rec=True)
-
-    # Setup the server
-    http_manager = HttpManager(root)
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        bound = False
-        while not bound:
-            try:
-                sock.bind((listen_address, baseport))
-                bound = True
-            except Exception:
-                baseport += 1
-
-        print(f"Connect to http://{lan_ip}:{baseport}")
-        webopen(f"http://{lan_ip}:{baseport}")
-
-        listen_loop(sock, http_manager)
+    main(parser.parse_args())
