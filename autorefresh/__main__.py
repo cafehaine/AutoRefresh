@@ -11,7 +11,7 @@ from webbrowser import open as webopen
 
 import pyinotify
 
-from autorefresh.httpmanager import handlehttp
+from autorefresh.httpmanager import HttpManager
 from autorefresh import websocketmanager
 
 BASEPORT = 8000
@@ -54,7 +54,7 @@ class EventHandler(pyinotify.ProcessEvent):
         self.update(event)
 
 
-def listen_loop(s):
+def listen_loop(s, http_manager):
     """Main server loop."""
     s.listen()
     while True:
@@ -100,7 +100,7 @@ def listen_loop(s):
             # File/Directory
             else:
                 conn.settimeout(5)
-                handlehttp(conn, path)
+                http_manager.handlehttp(conn, path)
                 conn.close()
             logging.info("done")
         except socket.timeout:
@@ -139,6 +139,8 @@ if __name__ == "__main__":
     wdd = wm.add_watch(root, mask, rec=True)
 
     # Setup the server
+    http_manager = HttpManager(root)
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         bound = False
         while not bound:
@@ -151,4 +153,4 @@ if __name__ == "__main__":
         print(f"Connect to http://{lan_ip}:{baseport}")
         webopen(f"http://{lan_ip}:{baseport}")
 
-        listen_loop(sock)
+        listen_loop(sock, http_manager)

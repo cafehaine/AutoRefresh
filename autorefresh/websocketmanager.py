@@ -23,7 +23,6 @@ def update(path):
     '''Will check if any of the websocketmanager should send an update signal'''
     for obj in __objects__:
         for cont_path in obj.content:
-            print(path, cont_path)
             if cont_path.endswith("*"):
                 if fnmatch(path, cont_path):
                     obj.update()
