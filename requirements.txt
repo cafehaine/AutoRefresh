@@ -1,2 +1,2 @@
 pyinotify==0.9.6
-Jinja2==2.11.2
+Jinja2==2.11.3
